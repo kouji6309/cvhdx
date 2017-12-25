@@ -59,6 +59,7 @@ namespace cvhdx {
             // attach vdisk
             // create partition primary
             // format fs=ntfs quick
+            // https://ndswanson.wordpress.com/2014/08/12/using-diskpart-with-c/
 
             Close();
         }
