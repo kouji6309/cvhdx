@@ -55,6 +55,11 @@ namespace cvhdx {
                 return;
             }
 
+            // create vdisk file="d:\test.vhdx" maximum=10240 type=expandable
+            // attach vdisk
+            // create partition primary
+            // format fs=ntfs quick
+
             Close();
         }
 
