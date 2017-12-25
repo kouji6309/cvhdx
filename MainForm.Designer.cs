@@ -27,9 +27,8 @@
             this.nameLabel = new System.Windows.Forms.Label();
             this.sizeLabel = new System.Windows.Forms.Label();
             this.nameBox = new System.Windows.Forms.TextBox();
-            this.sizeBox = new System.Windows.Forms.TextBox();
             this.createBtn = new System.Windows.Forms.Button();
-            this.unitBox = new System.Windows.Forms.ComboBox();
+            this.sizeBox = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // nameLabel
@@ -56,18 +55,8 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.nameBox.Location = new System.Drawing.Point(56, 12);
             this.nameBox.Name = "nameBox";
-            this.nameBox.Size = new System.Drawing.Size(166, 20);
+            this.nameBox.Size = new System.Drawing.Size(216, 20);
             this.nameBox.TabIndex = 0;
-            // 
-            // sizeBox
-            // 
-            this.sizeBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.sizeBox.Location = new System.Drawing.Point(56, 38);
-            this.sizeBox.Name = "sizeBox";
-            this.sizeBox.Size = new System.Drawing.Size(107, 20);
-            this.sizeBox.TabIndex = 1;
-            this.sizeBox.Text = "10";
             // 
             // createBtn
             // 
@@ -75,34 +64,28 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.createBtn.Location = new System.Drawing.Point(12, 66);
             this.createBtn.Name = "createBtn";
-            this.createBtn.Size = new System.Drawing.Size(210, 23);
+            this.createBtn.Size = new System.Drawing.Size(260, 23);
             this.createBtn.TabIndex = 3;
             this.createBtn.Text = "Create";
             this.createBtn.UseVisualStyleBackColor = true;
             this.createBtn.Click += new System.EventHandler(this.createBtn_Click);
             // 
-            // unitBox
+            // sizeBox
             // 
-            this.unitBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.unitBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.unitBox.FormattingEnabled = true;
-            this.unitBox.Items.AddRange(new object[] {
-            "MB",
-            "GB",
-            "TB"});
-            this.unitBox.Location = new System.Drawing.Point(169, 38);
-            this.unitBox.Name = "unitBox";
-            this.unitBox.Size = new System.Drawing.Size(53, 21);
-            this.unitBox.TabIndex = 2;
+            this.sizeBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.sizeBox.Location = new System.Drawing.Point(56, 38);
+            this.sizeBox.Name = "sizeBox";
+            this.sizeBox.Size = new System.Drawing.Size(216, 20);
+            this.sizeBox.TabIndex = 4;
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(234, 101);
-            this.Controls.Add(this.unitBox);
-            this.Controls.Add(this.createBtn);
+            this.ClientSize = new System.Drawing.Size(284, 101);
             this.Controls.Add(this.sizeBox);
+            this.Controls.Add(this.createBtn);
             this.Controls.Add(this.nameBox);
             this.Controls.Add(this.sizeLabel);
             this.Controls.Add(this.nameLabel);
@@ -125,8 +108,7 @@
         private System.Windows.Forms.Label nameLabel;
         private System.Windows.Forms.Label sizeLabel;
         private System.Windows.Forms.TextBox nameBox;
-        private System.Windows.Forms.TextBox sizeBox;
         private System.Windows.Forms.Button createBtn;
-        private System.Windows.Forms.ComboBox unitBox;
+        private System.Windows.Forms.TextBox sizeBox;
     }
 }

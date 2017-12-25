@@ -8,17 +8,18 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace cvhdx {
     internal partial class MainForm : Form {
         public String FullName { get { return path + (path.EndsWith(@"\") ? "" : @"\") + file; } }
-        public UInt32 FileSize { get; private set; }
+        public Int32 FileSize { get; private set; }
 
         private String path;
         private String file;
 
-        private UInt32 MAX = 67108864;
-        private UInt32[] UNIT = new UInt32[] { 1, 1024, 1048576 };
+        private Int32 MAX = 67108864;
+        private Dictionary<String, Int32> UNIT = new Dictionary<string, int>();
 
         public MainForm(string fullName) {
             InitializeComponent();
@@ -27,7 +28,10 @@ namespace cvhdx {
             path = Path.GetDirectoryName(fullName);
 
             nameBox.Text = file;
-            unitBox.SelectedIndex = 1;
+
+            UNIT.Add("MB", 1);
+            UNIT.Add("GB", 1024);
+            UNIT.Add("TB", 1048576);
         }
 
         private void createBtn_Click(object sender, EventArgs e) {
@@ -46,12 +50,15 @@ namespace cvhdx {
                 MessageBox.Show(file + "\nThe file exists.", Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            
-            if (!Double.TryParse(sizeBox.Text, out Double size)) {
-                MessageBox.Show("Size is not valid.", Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+            var reg = new Regex(@"(^[\d]+(\.\d+){0,1})[\s]*([MGT]B)$", RegexOptions.IgnoreCase);
+            var sizeText = sizeBox.Text.Trim();
+            var t = reg.Matches(sizeText);
+            if (t.Count != 1 || !Double.TryParse(t[0].Groups[1].Value, out Double val)) {
+                MessageBox.Show("The size is not valid.", Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
-            } else if ((FileSize = (UInt32)(size * UNIT[unitBox.SelectedIndex])) > MAX) {
-                MessageBox.Show("The maximum size is 64TB.", Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            } else if (val * UNIT[t[0].Groups[3].Value] < 100 || MAX < val * UNIT[t[0].Groups[3].Value]) {
+                MessageBox.Show("The size must be between 100MB and 64TB.", Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -61,7 +68,7 @@ namespace cvhdx {
             // format fs=ntfs quick
             // https://ndswanson.wordpress.com/2014/08/12/using-diskpart-with-c/
 
-            Close();
+            // Close();
         }
 
         private void MainForm_KeyDown(object sender, KeyEventArgs e) {
