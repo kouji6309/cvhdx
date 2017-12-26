@@ -57,6 +57,7 @@
             this.nameBox.Name = "nameBox";
             this.nameBox.Size = new System.Drawing.Size(216, 20);
             this.nameBox.TabIndex = 0;
+            this.nameBox.Text = "New Hard Disk Image File.vhdx";
             // 
             // createBtn
             // 
@@ -65,7 +66,7 @@
             this.createBtn.Location = new System.Drawing.Point(12, 66);
             this.createBtn.Name = "createBtn";
             this.createBtn.Size = new System.Drawing.Size(260, 23);
-            this.createBtn.TabIndex = 3;
+            this.createBtn.TabIndex = 2;
             this.createBtn.Text = "Create";
             this.createBtn.UseVisualStyleBackColor = true;
             this.createBtn.Click += new System.EventHandler(this.createBtn_Click);
@@ -77,7 +78,8 @@
             this.sizeBox.Location = new System.Drawing.Point(56, 38);
             this.sizeBox.Name = "sizeBox";
             this.sizeBox.Size = new System.Drawing.Size(216, 20);
-            this.sizeBox.TabIndex = 4;
+            this.sizeBox.TabIndex = 1;
+            this.sizeBox.Text = "10 GB";
             // 
             // MainForm
             // 
