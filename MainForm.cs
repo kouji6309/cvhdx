@@ -21,6 +21,7 @@ namespace cvhdx {
 
             file = Path.GetFileName(fullName);
             path = Path.GetDirectoryName(fullName);
+            path += path.EndsWith("\\") ? "" : "\\";
 
             nameBox.Text = file;
 
@@ -38,7 +39,7 @@ namespace cvhdx {
                 MessageBox.Show(errorMsg, Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            file = path + (path.EndsWith("\\") ? "" : "\\") + file;
+            file = path + file;
 
             errorMsg = Program.CheckSize(sizeBox.Text, out Int32 size);
             if (!String.IsNullOrEmpty(errorMsg)) {
@@ -68,7 +69,6 @@ namespace cvhdx {
             try {
                 using (Process p = new Process()) {
                     p.StartInfo.Verb = "runas";
-                    p.StartInfo.UseShellExecute = true;
                     p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
                     p.StartInfo.CreateNoWindow = true;
                     p.StartInfo.FileName = Program.EXE_PATH;

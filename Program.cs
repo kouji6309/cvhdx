@@ -49,8 +49,10 @@ namespace cvhdx {
                         Console.WriteLine("ERROR: " + errorMsg);
                         return;
                     }
+                    var path = Path.GetDirectoryName(args[0]);
+                    path += path.EndsWith("\\") ? "" : "\\";
 
-                    var tempName = Path.GetDirectoryName(args[0]) + "\\" + Path.GetFileNameWithoutExtension(Path.GetRandomFileName()) + ".vhdx"; ;
+                    var tempName = path + Path.GetFileNameWithoutExtension(Path.GetRandomFileName()) + ".vhdx"; ;
 
                     using (Process p = new Process()) {
                         p.StartInfo.Verb = "runas";
@@ -60,10 +62,10 @@ namespace cvhdx {
                         p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
                         p.StartInfo.CreateNoWindow = true;
                         p.Start();
-                        p.StandardInput.WriteLine("create vdisk file=\"" + tempName + "\" maximum=" + size + " type=expandable noerr");
-                        p.StandardInput.WriteLine("attach vdisk noerr");
-                        p.StandardInput.WriteLine("convert gpt noerr");
-                        p.StandardInput.WriteLine("create partition primary noerr");
+                        p.StandardInput.WriteLine("create vdisk file=\"" + tempName + "\" maximum=" + size + " type=expandable");
+                        p.StandardInput.WriteLine("attach vdisk");
+                        p.StandardInput.WriteLine("convert gpt");
+                        p.StandardInput.WriteLine("create partition primary");
                         p.StandardInput.WriteLine("format fs=ntfs quick");
                         p.StandardInput.WriteLine("assign letter=" + letterText);
                         p.StandardInput.WriteLine("detach vdisk");
@@ -74,7 +76,6 @@ namespace cvhdx {
                     File.Move(tempName, args[0]);
                 } catch (Exception ex) {
                     MessageBox.Show("Unable to create VHDX.", Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    MessageBox.Show(ex.ToString());
                 }
             } else {
                 try {
