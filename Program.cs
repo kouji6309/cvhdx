@@ -33,7 +33,40 @@ namespace cvhdx {
             }
 
             if (args.Length == 1) {
-                Application.Run(new MainForm(args[0]));
+                if (File.Exists(args[0])) {
+                    if (args[0].Any(c => c > 127)) {
+                        MessageBox.Show("Unable to compact VHDX:\n" + args[0] + ".\n\nThe path contains non ascii characters.", Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    } else {
+                        if (isElevated) {
+                            using (Process p = new Process()) {
+                                p.StartInfo.Verb = "runas";
+                                p.StartInfo.UseShellExecute = false;
+                                p.StartInfo.FileName = Program.SYS_PATH + @"\diskpart.exe";
+                                p.StartInfo.RedirectStandardInput = true;
+                                p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                                p.StartInfo.CreateNoWindow = true;
+                                p.Start();
+                                p.StandardInput.WriteLine("select vdisk file=\"" + args[0] + "\"");
+                                p.StandardInput.WriteLine("detach vdisk noerr");
+                                p.StandardInput.WriteLine("compact vdisk");
+                                p.StandardInput.WriteLine("exit");
+                                p.WaitForExit();
+                            }
+                            MessageBox.Show("Compact successful.", Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        } else {
+                            using (Process p = new Process()) {
+                                p.StartInfo.Verb = "runas";
+                                p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                                p.StartInfo.CreateNoWindow = true;
+                                p.StartInfo.FileName = Program.EXE_PATH;
+                                p.StartInfo.Arguments = "\"" + args[0] + "\"";
+                                p.Start();
+                            }
+                        }
+                    }
+                } else {
+                    Application.Run(new MainForm(args[0]));
+                }
             } else if (args.Length == 3 && isElevated) {
                 try {
                     var letterText = args[2].ToUpper()[0].ToString();
@@ -83,6 +116,7 @@ namespace cvhdx {
                         if (!EXE_PATH.StartsWith(SYS_PATH)) {
                             File.Copy(EXE_PATH, SYS_PATH + @"\cvhdx.exe", true);
                             Registry.SetValue(@"HKEY_CLASSES_ROOT\.vhdx\ShellNew", "command", "%SystemRoot%\\system32\\cvhdx.exe \"%1\"", RegistryValueKind.ExpandString);
+                            Registry.SetValue(@"HKEY_CLASSES_ROOT\SystemFileAssociations\.vhdx\shell\Compact\command", "", "%SystemRoot%\\system32\\cvhdx.exe \"%1\"", RegistryValueKind.ExpandString);
                             MessageBox.Show("Registered!", Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
                         }
                     } else {
