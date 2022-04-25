@@ -5,153 +5,372 @@ using System.Text;
 using System.Windows.Forms;
 using System.Security.Principal;
 using System.IO;
-using Microsoft.Win32;
 using System.Diagnostics;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+using System.Reflection;
+using Microsoft.Win32;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace cvhdx {
-    internal class Program {
-        public static String TITLE = "VHD Creater";
-        public static Int32 MAX_SIZE = 67108864;
-        public static String SYS_PATH = Environment.SystemDirectory;
-        public static String EXE_PATH = System.Reflection.Assembly.GetExecutingAssembly().Location;
-        public static Dictionary<String, Int32> UNIT = new Dictionary<string, int>();
+    internal static class Program {
+        [DllImport("kernel32.dll")]
+        private static extern Boolean AttachConsole(Int32 dwProcessId);
+
+        public static String Title { get; } = "VHDX Creater";
+
+        public static String Location { get; } = Assembly.GetExecutingAssembly().Location;
+
+        public static Boolean IsElevated { get; } = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
+
+        public static Dictionary<String, Int32> UnitMapping { get; } = new() {
+            { "MB", 1 },
+            { "GB", 1024 },
+            { "TB", 1048576 }
+        };
 
         [STAThread]
-        static void Main(String[] args) {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
+        private static Int32 Main(String[] args) {
+            var attached = AttachConsole(-1);
+            var errorCode = 0;
+            var message = "";
+            try {
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
 
-            UNIT.Add("MB", 1);
-            UNIT.Add("GB", 1024);
-            UNIT.Add("TB", 1048576);
-
-            bool isElevated = false;
-            using (WindowsIdentity identity = WindowsIdentity.GetCurrent()) {
-                WindowsPrincipal principal = new WindowsPrincipal(identity);
-                isElevated = principal.IsInRole(WindowsBuiltInRole.Administrator);
-            }
-
-            if (args.Length == 1) {
-                if (File.Exists(args[0])) {
-                    if (args[0].Any(c => c > 127)) {
-                        MessageBox.Show("Unable to compact VHDX:\n" + args[0] + ".\n\nThe path contains non ascii characters.", Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    } else {
-                        if (isElevated) {
-                            using (Process p = new Process()) {
-                                p.StartInfo.Verb = "runas";
-                                p.StartInfo.UseShellExecute = false;
-                                p.StartInfo.FileName = Program.SYS_PATH + @"\diskpart.exe";
-                                p.StartInfo.RedirectStandardInput = true;
-                                p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                                p.StartInfo.CreateNoWindow = true;
-                                p.Start();
-                                p.StandardInput.WriteLine("select vdisk file=\"" + args[0] + "\"");
-                                p.StandardInput.WriteLine("detach vdisk noerr");
-                                p.StandardInput.WriteLine("compact vdisk");
-                                p.StandardInput.WriteLine("exit");
-                                p.WaitForExit();
-                            }
-                            MessageBox.Show("Compact successful.", Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        } else {
-                            using (Process p = new Process()) {
-                                p.StartInfo.Verb = "runas";
-                                p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                                p.StartInfo.CreateNoWindow = true;
-                                p.StartInfo.FileName = Program.EXE_PATH;
-                                p.StartInfo.Arguments = "\"" + args[0] + "\"";
-                                p.Start();
-                            }
-                        }
-                    }
+                var command = args.FirstOrDefault()?.ToLower();
+                if (command == "create") {
+                    DoCreate(args);
+                    message = "Create successful.";
+                } else if (command == "expand") {
+                    DoExpand(args);
+                    message = "Expand successful.";
+                } else if (command == "compact") {
+                    DoCompact(args);
+                    message = "Compact successful.";
+                } else if (IsPathValid(command) && command.ToLower().EndsWith(".vhdx")) {
+                    ShowForm(args);
+                } else if (!attached) {
+                    DoRegister();
+                    message = "Register successful.";
                 } else {
-                    Application.Run(new MainForm(args[0]));
+                    ShowHelp();
                 }
-            } else if (args.Length == 3 && isElevated) {
-                try {
-                    var letterText = args[2].ToUpper()[0].ToString();
+            } catch (Exception ex) {
+                message = "ERROR: " + ex.Message;
+                errorCode = ex is CvhdxXException ? -2 : -1;
+            }
 
-                    String errorMsg = CheckName(args[0]);
-                    if (!String.IsNullOrEmpty(errorMsg)) {
-                        Console.WriteLine("ERROR: " + errorMsg);
-                        return;
-                    }
-
-                    errorMsg = CheckSize(args[1], out Int32 size);
-                    if (!String.IsNullOrEmpty(errorMsg)) {
-                        Console.WriteLine("ERROR: " + errorMsg);
-                        return;
-                    }
-                    var path = Path.GetDirectoryName(args[0]);
-                    path += path.EndsWith("\\") ? "" : "\\";
-
-                    var tempName = path + Path.GetFileNameWithoutExtension(Path.GetRandomFileName()) + ".vhdx"; ;
-
-                    using (Process p = new Process()) {
-                        p.StartInfo.Verb = "runas";
-                        p.StartInfo.UseShellExecute = false;
-                        p.StartInfo.FileName = Program.SYS_PATH + @"\diskpart.exe";
-                        p.StartInfo.RedirectStandardInput = true;
-                        p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                        p.StartInfo.CreateNoWindow = true;
-                        p.Start();
-                        p.StandardInput.WriteLine("create vdisk file=\"" + tempName + "\" maximum=" + size + " type=expandable");
-                        p.StandardInput.WriteLine("attach vdisk");
-                        p.StandardInput.WriteLine("convert gpt");
-                        p.StandardInput.WriteLine("create partition primary");
-                        p.StandardInput.WriteLine("format fs=ntfs quick");
-                        p.StandardInput.WriteLine("assign letter=" + letterText);
-                        p.StandardInput.WriteLine("detach vdisk");
-                        p.StandardInput.WriteLine("exit");
-                        p.WaitForExit();
-                    }
-
-                    File.Move(tempName, args[0]);
-                } catch (Exception ex) {
-                    MessageBox.Show("Unable to create VHDX.", Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            if (!String.IsNullOrEmpty(message)) {
+                if (!attached) {
+                    MessageBox.Show(message, Title, MessageBoxButtons.OK, errorCode == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Exclamation);
+                } else {
+                    Console.WriteLine("");
+                    Console.WriteLine(message);
+                    Console.WriteLine("");
+                    SendKeys.SendWait("{ENTER}");
                 }
+            }
+            return errorCode;
+        }
+
+        private static void ShowHelp() {
+            Console.WriteLine("");
+            Console.WriteLine("USAGE:");
+            Console.WriteLine("  cvhdx <file>");
+            Console.WriteLine("  cvhdx <command> <option>...");
+            Console.WriteLine("");
+            Console.WriteLine("  Commands:");
+            Console.WriteLine("    create     Creates a virtual disk file.");
+            Console.WriteLine("    expand     Expands the maximum size available on a virtual disk.");
+            Console.WriteLine("    compact    Attempts to reduce the physical size of the file.");
+            Console.WriteLine("");
+            Console.WriteLine("  Options:");
+            Console.WriteLine("    --file,       -f    Specifies the complete path and filename of the virtual disk file.");
+            Console.WriteLine("    --capacity,   -c    Specifies the maximum amount of space exposed by the virtual disk, in megabytes(MB).");
+            Console.WriteLine("    --initialize, -i    Create the volume and format.");
+            Console.WriteLine("");
+            Console.WriteLine("");
+            Console.WriteLine("EXAMPLE:");
+            Console.WriteLine("  cvhdx D:\\Database.vhdx");
+            Console.WriteLine("  cvhdx create -f D:\\Database.vhdx -c 10240 -i");
+            Console.WriteLine("  cvhdx expaned -f D:\\Database.vhdx -c 20480");
+            Console.WriteLine("  cvhdx compact -f D:\\Database.vhdx");
+            Console.WriteLine("");
+            SendKeys.SendWait("{ENTER}");
+        }
+
+        private static void DoCreate(String[] args) {
+            if (!IsElevated) {
+                throw new CvhdxXException("Access is denied.");
+            }
+
+            if (!TryGetArg(args, new[] { "--file", "-f" }, out String file)) {
+                throw new CvhdxXException("The file must be specified.");
+            }
+
+            if (!IsPathValid(file)) {
+                throw new CvhdxXException("The file name is not valid.");
+            }
+
+            if (File.Exists(file)) {
+                throw new CvhdxXException("The file already exists.");
+            }
+
+            if (!TryGetArg(args, new[] { "--capacity", "-c" }, out Int64 capacity)) {
+                throw new CvhdxXException("The capacity must be specified.");
+            }
+
+            if (capacity < 5 || 67108864 < capacity) {
+                throw new CvhdxXException("The capacity must be between 5 MB and 67108864 MB(64TB).");
+            }
+
+            TryGetArg(args, new String[] { "--initialize", "-i" }, out Boolean initialize);
+
+            var diskFile = file.ConvertTo(Encoding.Default);
+            var commands = new List<String>();
+            commands.Add($"create vdisk file=\"{diskFile}\" maximum={capacity} type=expandable");
+            commands.Add("attach vdisk");
+            commands.Add("convert gpt");
+
+            if (initialize) {
+                commands.Add("create partition primary");
+                commands.Add("format fs=ntfs quick");
+                commands.Add("assign");
+            }
+
+            commands.Add("detach vdisk");
+            commands.Add("exit");
+
+            var result = RunDiskpart(commands);
+            if (result.ToLower().Contains("error:")) {
+                throw new CvhdxXException(result);
+            }
+        }
+
+        private static void DoExpand(String[] args) {
+            if (!IsElevated) {
+                throw new CvhdxXException("Access is denied.");
+            }
+
+            if (!TryGetArg(args, new[] { "--file", "-f" }, out String file)) {
+                throw new CvhdxXException("The file must be specified.");
+            }
+
+            if (!IsPathValid(file)) {
+                throw new CvhdxXException("The file name is not valid.");
+            }
+
+            if (!File.Exists(file)) {
+                throw new CvhdxXException("The file is not exists.");
+            }
+
+            if (!TryGetArg(args, new[] { "--capacity", "-c" }, out Int64 capacity)) {
+                throw new CvhdxXException("The capacity must be specified");
+            }
+
+            var oldCapacity = GetVhdxCapacity(file);
+            if (capacity <= oldCapacity) {
+                throw new CvhdxXException("The capacity must be larger than the original capacity.");
+            }
+
+            var diskFile = file.ConvertTo(Encoding.Default);
+            var commands = new[] {
+                $"select vdisk file=\"{diskFile}\"",
+                "detach vdisk noerr",
+                $"expand vdisk maximum={capacity}",
+                "exit",
+            };
+
+            var result = RunDiskpart(commands).ToLower();
+            if (result.Contains("error:") && !result.Contains("detached")) {
+                throw new CvhdxXException(result);
+            }
+        }
+
+        private static void DoCompact(String[] args) {
+            if (!IsElevated) {
+                throw new CvhdxXException("Access is denied.");
+            }
+
+            if (!TryGetArg(args, new[] { "--file", "-f" }, out String file)) {
+                throw new CvhdxXException("The file must be specified.");
+            }
+
+            if (!IsPathValid(file)) {
+                throw new CvhdxXException("The file name is not valid.");
+            }
+
+            if (!File.Exists(file)) {
+                throw new CvhdxXException("The file is not exists.");
+            }
+
+            var diskFile = file.ConvertTo(Encoding.Default);
+            var commands = new[] {
+                $"select vdisk file=\"{diskFile}\"",
+                "detach vdisk noerr",
+                "compact vdisk",
+                "exit",
+            };
+
+            var result = RunDiskpart(commands);
+            if (result.ToLower().Contains("error:")) {
+                throw new CvhdxXException(result);
+            }
+        }
+
+        private static void ShowForm(String[] args) {
+            try {
+                var filename = args[0];
+                var fileExists = File.Exists(filename);
+                if (fileExists && !IsElevated) {
+                    RunProcess(Location, args);
+                    return;
+                }
+
+                MainForm form = null;
+                if (!fileExists) {
+                    form = new MainForm(CommandType.Create);
+                    form.Capacity = 102400;
+                } else {
+                    form = new MainForm(CommandType.Expand);
+                    form.Capacity = form.OriginalCapacity = form.MinimumCapacity = GetVhdxCapacity(filename);
+                }
+                form.Filename = filename;
+
+                Application.Run(form);
+            } catch (Exception ex) {
+                MessageBox.Show(ex.Message, Program.Title, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                throw;
+            }
+        }
+
+        private static void DoRegister() {
+            if (!IsElevated) {
+                MessageBox.Show("Run as administrator to register.", Program.Title, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                throw new CvhdxXException("Access is denied.");
+            }
+
+            if (Location.StartsWith(Environment.SystemDirectory)) {
+                return;
+            }
+
+            File.Copy(Location, Path.Combine(Environment.SystemDirectory, "cvhdx.exe"), true);
+            Registry.SetValue(@"HKEY_CLASSES_ROOT\.vhdx\ShellNew", "command", "%SystemRoot%\\system32\\cvhdx.exe \"%1\"", RegistryValueKind.ExpandString);
+            Registry.SetValue(@"HKEY_CLASSES_ROOT\SystemFileAssociations\.vhdx\shell\Expand\command", "", "%SystemRoot%\\system32\\cvhdx.exe \"%1\"", RegistryValueKind.ExpandString);
+            Registry.SetValue(@"HKEY_CLASSES_ROOT\SystemFileAssociations\.vhdx\shell\Compact\command", "", "%SystemRoot%\\system32\\cvhdx.exe compact --file \"%1\"", RegistryValueKind.ExpandString);
+        }
+
+        public static String ConvertTo(this String data, Encoding encoding) {
+            return encoding.GetString(Encoding.Convert(Encoding.UTF8, encoding, Encoding.UTF8.GetBytes(data)));
+        }
+
+        public static Boolean IsPathValid(String path) {
+            return !String.IsNullOrEmpty(path) && Path.GetFileName(path).IndexOfAny(Path.GetInvalidFileNameChars()) == -1;
+        }
+
+        public static Int32 GetVhdxCapacity(String filename) {
+            var diskFile = filename.ConvertTo(Encoding.Default);
+            var comamnds = new[] {
+                $"select vdisk file=\"{diskFile}\"",
+                "detail vdisk",
+                "exit"
+            };
+            var result = RunDiskpart(comamnds);
+            var regex = new Regex("Virtual size: (.*)", RegexOptions.Multiline);
+            var match = regex.Match(result);
+            if (match.Success && TryParseCapacity(match.Groups[1].Value, out var capacity)) {
+                return capacity;
             } else {
+                throw new CvhdxXException("Unable to get VHDX capacity.");
+            }
+        }
+
+        public static String RunDiskpart(IEnumerable<String> commands) {
+            using var p = new Process();
+            p.StartInfo.UseShellExecute = false;
+            p.StartInfo.FileName = Path.Combine(Environment.SystemDirectory, "diskpart.exe");
+            p.StartInfo.RedirectStandardInput = true;
+            p.StartInfo.RedirectStandardOutput = true;
+            p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            p.StartInfo.CreateNoWindow = true;
+            p.Start();
+            foreach (var i in commands) {
+                p.StandardInput.WriteLine(i);
+            }
+            p.WaitForExit();
+            return p.StandardOutput.ReadToEnd();
+        }
+
+        public static Int32 RunProcess(String filename, IEnumerable<String> args) {
+            try {
+                using var p = new Process();
+                p.StartInfo.Verb = "runas";
+                p.StartInfo.UseShellExecute = true;
+                p.StartInfo.FileName = filename;
+                p.StartInfo.Arguments = String.Join(" ", args.Select(a => '"' + a + '"'));
+                p.Start();
+                p.WaitForExit();
+                return p.ExitCode;
+            } catch {
+                return -1;
+            }
+        }
+
+        public static Boolean TryGetArg<T>(String[] args, String[] tags, out T value) {
+            value = default;
+            var isFlag = typeof(T) == typeof(Boolean);
+            for (var i = 0; i < args.Length; i++) {
+                if (!tags.Contains(args[i])) {
+                    continue;
+                }
+
+                if (isFlag) {
+                    value = (T)(Object)true;
+                    return true;
+                }
+
+                if (i + 1 >= args.Length) {
+                    return false;
+                }
+
                 try {
-                    if (isElevated) {
-                        if (!EXE_PATH.StartsWith(SYS_PATH)) {
-                            File.Copy(EXE_PATH, SYS_PATH + @"\cvhdx.exe", true);
-                            Registry.SetValue(@"HKEY_CLASSES_ROOT\.vhdx\ShellNew", "command", "%SystemRoot%\\system32\\cvhdx.exe \"%1\"", RegistryValueKind.ExpandString);
-                            Registry.SetValue(@"HKEY_CLASSES_ROOT\SystemFileAssociations\.vhdx\shell\Compact\command", "", "%SystemRoot%\\system32\\cvhdx.exe \"%1\"", RegistryValueKind.ExpandString);
-                            MessageBox.Show("Registered!", Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        }
-                    } else {
-                        MessageBox.Show("Run as administrator to register.", Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                    }
+                    var t = TypeDescriptor.GetConverter(typeof(T));
+                    value = (T)t.ConvertFrom(args[i + 1]);
+                    return true;
                 } catch {
-                    MessageBox.Show("Unable to register!", Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
                 }
             }
-        }
 
-        public static String CheckName(String file) {
-            if (string.IsNullOrEmpty(file)) {
-                return "You must type a file name.";
-            } else if (Path.GetFileName(file).IndexOfAny(Path.GetInvalidFileNameChars()) != -1) {
-                return "The file name is not valid.";
-            } else if (File.Exists(file)) {
-                return "The file exists.";
+            if (isFlag) {
+                value = (T)(Object)false;
+                return true;
+            } else {
+                return false;
             }
-            return null;
         }
 
-        public static String CheckSize(String size, out Int32 FileSize) {
-            var reg = new Regex(@"(^[\d]+(\.\d+){0,1})[\s]*([MGT]B)$", RegexOptions.IgnoreCase);
-            var sizeText = size.Trim();
-            var t = reg.Matches(sizeText);
-            FileSize = -1;
-            var temp = 0.0;
-            if (t.Count != 1 || !Double.TryParse(t[0].Groups[1].Value, out Double val)) {
-                return "The size is not valid.";
-            } else if ((FileSize = (Int32)(val * UNIT[t[0].Groups[3].Value])) < 100 || Program.MAX_SIZE < temp) {
-                return "The size must be between 100MB and 64TB.";
+        public static Boolean TryParseCapacity(String str, out Int32 capacity) {
+            capacity = default;
+            var reg = new Regex(@"(^[\d]+(?:\.\d+){0,1})[\s]*([MGT]B)$", RegexOptions.IgnoreCase);
+            var matches = reg.Matches(str.Trim().ToUpper());
+            if (matches.Count != 1 || !Double.TryParse(matches[0].Groups[1].Value, out var value)) {
+                return false;
             }
-            return null;
-        }
 
+            capacity = (Int32)(value * UnitMapping[matches[0].Groups[2].Value] / UnitMapping["MB"]);
+            return true;
+        }
+    }
+
+    internal class CvhdxXException : Exception {
+        public CvhdxXException(String message) : base(message) { }
+    }
+
+    internal enum CommandType {
+        Create, Expand
     }
 }
+

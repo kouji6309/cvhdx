@@ -24,93 +24,152 @@
         /// </summary>
         private void InitializeComponent() {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
-            this.nameLabel = new System.Windows.Forms.Label();
-            this.sizeLabel = new System.Windows.Forms.Label();
-            this.nameBox = new System.Windows.Forms.TextBox();
-            this.createBtn = new System.Windows.Forms.Button();
-            this.sizeBox = new System.Windows.Forms.TextBox();
+            this.label1 = new System.Windows.Forms.Label();
+            this.label2 = new System.Windows.Forms.Label();
+            this.actionButton = new System.Windows.Forms.Button();
+            this.initializeCheck = new System.Windows.Forms.CheckBox();
+            this.label3 = new System.Windows.Forms.Label();
+            this.originalCapacityLabel = new System.Windows.Forms.Label();
+            this.filenameBox = new System.Windows.Forms.TextBox();
+            this.capacityBox = new System.Windows.Forms.TextBox();
+            this.capacityLabel = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
-            // nameLabel
+            // label1
             // 
-            this.nameLabel.AutoSize = true;
-            this.nameLabel.Location = new System.Drawing.Point(12, 15);
-            this.nameLabel.Name = "nameLabel";
-            this.nameLabel.Size = new System.Drawing.Size(38, 13);
-            this.nameLabel.TabIndex = 0;
-            this.nameLabel.Text = "Name:";
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(18, 23);
+            this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(84, 20);
+            this.label1.TabIndex = 3;
+            this.label1.Text = "File Name:";
             // 
-            // sizeLabel
+            // label2
             // 
-            this.sizeLabel.AutoSize = true;
-            this.sizeLabel.Location = new System.Drawing.Point(12, 41);
-            this.sizeLabel.Name = "sizeLabel";
-            this.sizeLabel.Size = new System.Drawing.Size(30, 13);
-            this.sizeLabel.TabIndex = 0;
-            this.sizeLabel.Text = "Size:";
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(18, 63);
+            this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(74, 20);
+            this.label2.TabIndex = 4;
+            this.label2.Text = "Capacity:";
             // 
-            // nameBox
+            // actionButton
             // 
-            this.nameBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.actionButton.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.nameBox.Location = new System.Drawing.Point(56, 12);
-            this.nameBox.Name = "nameBox";
-            this.nameBox.Size = new System.Drawing.Size(216, 20);
-            this.nameBox.TabIndex = 0;
-            this.nameBox.Text = "New Hard Disk Image File.vhdx";
+            this.actionButton.Location = new System.Drawing.Point(14, 140);
+            this.actionButton.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.actionButton.Name = "actionButton";
+            this.actionButton.Size = new System.Drawing.Size(453, 35);
+            this.actionButton.TabIndex = 5;
+            this.actionButton.Text = "Create";
+            this.actionButton.UseVisualStyleBackColor = true;
+            this.actionButton.Click += new System.EventHandler(this.actionButton_Click);
             // 
-            // createBtn
+            // initializeCheck
             // 
-            this.createBtn.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            this.initializeCheck.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.initializeCheck.AutoSize = true;
+            this.initializeCheck.Location = new System.Drawing.Point(367, 62);
+            this.initializeCheck.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.initializeCheck.Name = "initializeCheck";
+            this.initializeCheck.Size = new System.Drawing.Size(92, 24);
+            this.initializeCheck.TabIndex = 6;
+            this.initializeCheck.Text = "Initialize";
+            this.initializeCheck.UseVisualStyleBackColor = true;
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(18, 100);
+            this.label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(66, 20);
+            this.label3.TabIndex = 9;
+            this.label3.Text = "Original:";
+            // 
+            // originalCapacityLabel
+            // 
+            this.originalCapacityLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.originalCapacityLabel.Location = new System.Drawing.Point(230, 100);
+            this.originalCapacityLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.originalCapacityLabel.Name = "originalCapacityLabel";
+            this.originalCapacityLabel.Size = new System.Drawing.Size(130, 20);
+            this.originalCapacityLabel.TabIndex = 10;
+            this.originalCapacityLabel.Text = "102400 MB";
+            this.originalCapacityLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            // 
+            // filenameBox
+            // 
+            this.filenameBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.createBtn.Location = new System.Drawing.Point(12, 66);
-            this.createBtn.Name = "createBtn";
-            this.createBtn.Size = new System.Drawing.Size(260, 23);
-            this.createBtn.TabIndex = 2;
-            this.createBtn.Text = "Create";
-            this.createBtn.UseVisualStyleBackColor = true;
-            this.createBtn.Click += new System.EventHandler(this.createBtn_Click);
+            this.filenameBox.Location = new System.Drawing.Point(109, 20);
+            this.filenameBox.Name = "filenameBox";
+            this.filenameBox.Size = new System.Drawing.Size(357, 26);
+            this.filenameBox.TabIndex = 11;
+            this.filenameBox.Text = "New Hard Disk Image File.vhdx";
+            this.filenameBox.KeyUp += new System.Windows.Forms.KeyEventHandler(this.filenameBox_KeyUp);
             // 
-            // sizeBox
+            // capacityBox
             // 
-            this.sizeBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.capacityBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.sizeBox.Location = new System.Drawing.Point(56, 38);
-            this.sizeBox.Name = "sizeBox";
-            this.sizeBox.Size = new System.Drawing.Size(216, 20);
-            this.sizeBox.TabIndex = 1;
-            this.sizeBox.Text = "10 GB";
+            this.capacityBox.Location = new System.Drawing.Point(109, 60);
+            this.capacityBox.Name = "capacityBox";
+            this.capacityBox.Size = new System.Drawing.Size(115, 26);
+            this.capacityBox.TabIndex = 12;
+            this.capacityBox.Text = "100 GB";
+            this.capacityBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.capacityBox.KeyUp += new System.Windows.Forms.KeyEventHandler(this.capacityBox_KeyUp);
+            // 
+            // capacityLabel
+            // 
+            this.capacityLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.capacityLabel.Location = new System.Drawing.Point(230, 62);
+            this.capacityLabel.Name = "capacityLabel";
+            this.capacityLabel.Size = new System.Drawing.Size(130, 23);
+            this.capacityLabel.TabIndex = 13;
+            this.capacityLabel.Text = "102400 MB";
+            this.capacityLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // MainForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(284, 101);
-            this.Controls.Add(this.sizeBox);
-            this.Controls.Add(this.createBtn);
-            this.Controls.Add(this.nameBox);
-            this.Controls.Add(this.sizeLabel);
-            this.Controls.Add(this.nameLabel);
+            this.ClientSize = new System.Drawing.Size(478, 194);
+            this.Controls.Add(this.capacityLabel);
+            this.Controls.Add(this.capacityBox);
+            this.Controls.Add(this.filenameBox);
+            this.Controls.Add(this.originalCapacityLabel);
+            this.Controls.Add(this.label3);
+            this.Controls.Add(this.initializeCheck);
+            this.Controls.Add(this.actionButton);
+            this.Controls.Add(this.label2);
+            this.Controls.Add(this.label1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.KeyPreview = true;
+            this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Create new VHDX file";
-            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.MainForm_KeyDown);
             this.ResumeLayout(false);
             this.PerformLayout();
 
         }
 
         #endregion
-
-        private System.Windows.Forms.Label nameLabel;
-        private System.Windows.Forms.Label sizeLabel;
-        private System.Windows.Forms.TextBox nameBox;
-        private System.Windows.Forms.Button createBtn;
-        private System.Windows.Forms.TextBox sizeBox;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Button actionButton;
+        private System.Windows.Forms.CheckBox initializeCheck;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.Label originalCapacityLabel;
+        private System.Windows.Forms.TextBox filenameBox;
+        private System.Windows.Forms.TextBox capacityBox;
+        private System.Windows.Forms.Label capacityLabel;
     }
 }

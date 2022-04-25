@@ -8,86 +8,162 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
-using System.Text.RegularExpressions;
 using System.Diagnostics;
 
 namespace cvhdx {
     internal partial class MainForm : Form {
-        private String path;
-        private String file;
 
-        public MainForm(string fullName) {
+        private readonly ToolTip capacityToolTip = new();
+        private readonly ToolTip filenameToolTip = new();
+
+        private CommandType type;
+        public MainForm(CommandType type) : base() {
             InitializeComponent();
 
-            file = Path.GetFileName(fullName);
-            path = Path.GetDirectoryName(fullName);
-            path += path.EndsWith("\\") ? "" : "\\";
+            capacityBox.KeyUp += checkActionButton;
+            filenameBox.KeyUp += checkActionButton;
 
-            nameBox.Text = file;
-
+            this.type = type;
+            if (type == CommandType.Create) {
+                label3.Visible = false;
+                originalCapacityLabel.Visible = false;
+            }
+            if (type == CommandType.Expand) {
+                filenameBox.Enabled = false;
+                initializeCheck.Enabled = false;
+                actionButton.Text = "Expand";
+                Text = "Expand the VHDX file";
+            }
         }
 
-        private void createBtn_Click(object sender, EventArgs e) {
-            file = nameBox.Text;
-            if (!file.EndsWith(".vhdx")) {
-                file += ".vhdx";
+        private Int32 originalCapacity = -1;
+        public Int32 OriginalCapacity {
+            get { return originalCapacity; }
+            set {
+                originalCapacity = value;
+                originalCapacityLabel.Text = originalCapacity + " MB";
             }
+        }
 
-            String errorMsg = Program.CheckName(file);
-            if (!String.IsNullOrEmpty(errorMsg)) {
-                nameBox.Focus();
-                MessageBox.Show(errorMsg, Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-            file = path + file;
-
-            errorMsg = Program.CheckSize(sizeBox.Text, out Int32 size);
-            if (!String.IsNullOrEmpty(errorMsg)) {
-                sizeBox.Focus();
-                MessageBox.Show(errorMsg, Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            String letter = null;
-            var list = new Boolean[26];
-            var drives = DriveInfo.GetDrives();
-            foreach (var i in drives) {
-                list[i.Name.ToUpper().ToCharArray()[0] - 65] = true;
-            }
-            for (var i = 3; i < list.Length; i++) {
-                if (!list[i]) {
-                    letter = Convert.ToString((char)(i + 65));
-                    break;
+        private Boolean isCapacityValid = false;
+        private Int32 _capacity = -1;
+        private Int32 capacity {
+            get { return _capacity; }
+            set {
+                _capacity = value;
+                if (_capacity > 0) {
+                    capacityLabel.Text = _capacity + " MB";
+                } else {
+                    capacityLabel.Text = "-";
                 }
             }
+        }
+        public Int32 Capacity {
+            get { return capacity; }
+            set {
+                capacity = value;
+                capacityBox.Text = capacity + " MB";
+                capacityBox_KeyUp(null, null);
+            }
+        }
 
-            if (String.IsNullOrEmpty(letter)) {
-                MessageBox.Show("No more drive letters are avaliable.", Program.TITLE, MessageBoxButtons.OK, MessageBoxIcon.Error);
+        private Int32 minimumCapacity { get; set; } = 5;
+        public Int32 MinimumCapacity {
+            get { return minimumCapacity; }
+            set {
+                minimumCapacity = value;
+                capacityBox_KeyUp(null, null);
+            }
+        }
+
+        private void capacityBox_KeyUp(object sender, KeyEventArgs e) {
+            isCapacityValid = false;
+            capacityToolTip.RemoveAll();
+
+            if (!Program.TryParseCapacity(capacityBox.Text, out var value)) {
+                capacityBox.ForeColor = Color.Red;
+                capacityToolTip.SetToolTip(capacityBox, "The capacity vaue is not valid.");
+                capacity = -1;
                 return;
             }
 
-            try {
-                using (Process p = new Process()) {
-                    p.StartInfo.Verb = "runas";
-                    p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                    p.StartInfo.CreateNoWindow = true;
-                    p.StartInfo.FileName = Program.EXE_PATH;
-                    p.StartInfo.Arguments = "\"" + file + "\" \"" + sizeBox.Text + "\" " + letter;
-                    p.Start();
+            if (value < minimumCapacity || 67108864 < value) {
+                var minText = minimumCapacity + "MB";
+                capacityBox.ForeColor = Color.Red;
+                capacityToolTip.SetToolTip(capacityBox, "The capacity must be between " + minText + " and 64TB.");
+                capacity = -1;
+                return;
+            }
+
+            capacityBox.ForeColor = SystemColors.WindowText;
+            capacity = (Int32)value;
+            isCapacityValid = true;
+        }
+
+        private String _basepath = "";
+        private String _filename = "";
+        public String Filename {
+            get {
+                return Path.Combine(_basepath, _filename);
+            }
+            set {
+                try {
+                    _basepath = Path.GetDirectoryName(value);
+                    _filename = Path.GetFileName(value);
+                    filenameBox.Text = _filename;
+                    filenameBox_KeyUp(null, null);
+                } catch { }
+            }
+        }
+
+        private Boolean isFilenameValid = false;
+        private void filenameBox_KeyUp(object sender, KeyEventArgs e) {
+            isFilenameValid = false;
+            filenameToolTip.RemoveAll();
+            var filename = filenameBox.Text;
+
+            if (String.IsNullOrEmpty(filename)) {
+                filenameBox.ForeColor = Color.Red;
+                filenameToolTip.SetToolTip(filenameBox, "You must type a file name.");
+                return;
+            }
+
+            if (filename.IndexOfAny(Path.GetInvalidFileNameChars()) > 0) {
+                filenameBox.ForeColor = Color.Red;
+                filenameToolTip.SetToolTip(filenameBox, "The file name is not valid.");
+                return;
+            }
+
+            filenameBox.ForeColor = SystemColors.WindowText;
+            _filename = filename;
+            isFilenameValid = true;
+        }
+
+        private void checkActionButton(object sender, KeyEventArgs e) {
+            actionButton.Enabled = isFilenameValid && isCapacityValid;
+        }
+
+        private void actionButton_Click(object sender, EventArgs e) {
+            var command = new List<String>();
+            if (type == CommandType.Create) {
+                command.Add("create");
+                if (initializeCheck.Checked) {
+                    command.Add("--initialize");
                 }
-            } catch { }
+            }
+            if (type == CommandType.Expand) {
+                command.Add("expand");
+            }
+            command.Add("--file");
+            command.Add(Filename);
+            command.Add("--capacity");
+            command.Add(Capacity.ToString());
+
+            var result = Program.RunProcess(Program.Location, command);
+            if (result != 0) {
+                MessageBox.Show(result.ToString(), Program.Title, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            }
             Close();
-        }
-
-        private void MainForm_KeyDown(object sender, KeyEventArgs e) {
-            switch (e.KeyCode) {
-                case Keys.Escape:
-                    this.Close();
-                    break;
-                case Keys.Enter:
-                    createBtn_Click(null, null);
-                    break;
-            }
         }
     }
 }
