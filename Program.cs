@@ -24,6 +24,8 @@ namespace cvhdx {
 
         public static Boolean IsElevated { get; } = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
 
+        public static Boolean Attached { get; set; } = false;
+
         public static Dictionary<String, Int32> UnitMapping { get; } = new() {
             { "MB", 1 },
             { "GB", 1024 },
@@ -32,7 +34,7 @@ namespace cvhdx {
 
         [STAThread]
         private static Int32 Main(String[] args) {
-            var attached = AttachConsole(-1);
+            Attached = AttachConsole(-1);
             var errorCode = 0;
             var message = "";
             try {
@@ -47,11 +49,12 @@ namespace cvhdx {
                     DoExpand(args);
                     message = "Expand successful.";
                 } else if (command == "compact") {
-                    DoCompact(args);
-                    message = "Compact successful.";
+                    if (DoCompact(args)) {
+                        message = "Compact successful.";
+                    }
                 } else if (IsPathValid(command) && command.ToLower().EndsWith(".vhdx")) {
                     ShowForm(args);
-                } else if (!attached) {
+                } else if (!Attached) {
                     DoRegister();
                     message = "Register successful.";
                 } else {
@@ -63,7 +66,7 @@ namespace cvhdx {
             }
 
             if (!String.IsNullOrEmpty(message)) {
-                if (!attached) {
+                if (!Attached) {
                     MessageBox.Show(message, Title, MessageBoxButtons.OK, errorCode == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Exclamation);
                 } else {
                     Console.WriteLine("");
@@ -183,15 +186,20 @@ namespace cvhdx {
                 "exit",
             };
 
-            var result = RunDiskpart(commands).ToLower();
-            if (result.Contains("error:") && !result.Contains("detached")) {
+            var result = RunDiskpart(commands);
+            if (result.ToLower().Contains("error:") && !result.ToLower().Contains("detached")) {
                 throw new CvhdxXException(result);
             }
         }
 
-        private static void DoCompact(String[] args) {
-            if (!IsElevated) {
+        private static Boolean DoCompact(String[] args) {
+            if (!IsElevated && Attached) {
                 throw new CvhdxXException("Access is denied.");
+            }
+
+            if (!IsElevated) {
+                RunProcess(Location, args);
+                return false;
             }
 
             if (!TryGetArg(args, new[] { "--file", "-f" }, out String file)) {
@@ -215,9 +223,11 @@ namespace cvhdx {
             };
 
             var result = RunDiskpart(commands);
-            if (result.ToLower().Contains("error:")) {
+            if (result.ToLower().Contains("error:") && !result.ToLower().Contains("detached")) {
                 throw new CvhdxXException(result);
             }
+
+            return true;
         }
 
         private static void ShowForm(String[] args) {
