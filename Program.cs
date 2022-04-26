@@ -34,13 +34,13 @@ namespace cvhdx {
 
         [STAThread]
         private static Int32 Main(String[] args) {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+
             Attached = AttachConsole(-1);
             var errorCode = 0;
             var message = "";
             try {
-                Application.EnableVisualStyles();
-                Application.SetCompatibleTextRenderingDefault(false);
-
                 var command = args.FirstOrDefault()?.ToLower();
                 if (command == "create") {
                     DoCreate(args);
@@ -67,7 +67,7 @@ namespace cvhdx {
 
             if (!String.IsNullOrEmpty(message)) {
                 if (!Attached) {
-                    MessageBox.Show(message, Title, MessageBoxButtons.OK, errorCode == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Exclamation);
+                    Msgbox(message, MessageBoxButtons.OK, errorCode == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Exclamation);
                 } else {
                     Console.WriteLine("");
                     Console.WriteLine(message);
@@ -114,7 +114,7 @@ namespace cvhdx {
             }
 
             if (!IsPathValid(file)) {
-                throw new CvhdxXException("The file name is not valid.");
+                throw new CvhdxXException("The file name is invalid.");
             }
 
             if (File.Exists(file)) {
@@ -162,7 +162,7 @@ namespace cvhdx {
             }
 
             if (!IsPathValid(file)) {
-                throw new CvhdxXException("The file name is not valid.");
+                throw new CvhdxXException("The file name is invalid.");
             }
 
             if (!File.Exists(file)) {
@@ -198,7 +198,11 @@ namespace cvhdx {
             }
 
             if (!IsElevated) {
-                RunProcess(Location, args);
+                try {
+                    RunProcess(Location, args);
+                } catch (Exception ex) {
+                    Msgbox(ex.Message, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                }
                 return false;
             }
 
@@ -207,7 +211,7 @@ namespace cvhdx {
             }
 
             if (!IsPathValid(file)) {
-                throw new CvhdxXException("The file name is not valid.");
+                throw new CvhdxXException("The file name is invalid.");
             }
 
             if (!File.Exists(file)) {
@@ -235,7 +239,11 @@ namespace cvhdx {
                 var filename = args[0];
                 var fileExists = File.Exists(filename);
                 if (fileExists && !IsElevated) {
-                    RunProcess(Location, args);
+                    try {
+                        RunProcess(Location, args);
+                    } catch (Exception ex) {
+                        Msgbox(ex.Message, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    }
                     return;
                 }
 
@@ -251,14 +259,14 @@ namespace cvhdx {
 
                 Application.Run(form);
             } catch (Exception ex) {
-                MessageBox.Show(ex.Message, Program.Title, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                Msgbox(ex.Message, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 throw;
             }
         }
 
         private static void DoRegister() {
             if (!IsElevated) {
-                MessageBox.Show("Run as administrator to register.", Program.Title, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                Msgbox("Run as administrator to register.", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 throw new CvhdxXException("Access is denied.");
             }
 
@@ -324,7 +332,7 @@ namespace cvhdx {
                 p.WaitForExit();
                 return p.ExitCode;
             } catch {
-                return -1;
+                throw;
             }
         }
 
@@ -372,6 +380,10 @@ namespace cvhdx {
 
             capacity = (Int32)(value * UnitMapping[matches[0].Groups[2].Value] / UnitMapping["MB"]);
             return true;
+        }
+
+        public static DialogResult Msgbox(String text, MessageBoxButtons button, MessageBoxIcon icon) {
+            return MessageBox.Show(text, Title, button, icon);
         }
     }
 

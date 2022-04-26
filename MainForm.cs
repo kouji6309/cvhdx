@@ -82,7 +82,7 @@ namespace cvhdx {
 
             if (!Program.TryParseCapacity(capacityBox.Text, out var value)) {
                 capacityBox.ForeColor = Color.Red;
-                capacityToolTip.SetToolTip(capacityBox, "The capacity vaue is not valid.");
+                capacityToolTip.SetToolTip(capacityBox, "The capacity vaue is invalid.");
                 capacity = -1;
                 return;
             }
@@ -104,7 +104,11 @@ namespace cvhdx {
         private String _filename = "";
         public String Filename {
             get {
-                return Path.Combine(_basepath, _filename);
+                var filename = _filename;
+                if (!filename.ToLower().EndsWith(".vhdx")) {
+                    filename = Path.ChangeExtension(filename, ".vhdx");
+                }
+                return Path.Combine(_basepath, filename);
             }
             set {
                 try {
@@ -130,7 +134,7 @@ namespace cvhdx {
 
             if (filename.IndexOfAny(Path.GetInvalidFileNameChars()) > 0) {
                 filenameBox.ForeColor = Color.Red;
-                filenameToolTip.SetToolTip(filenameBox, "The file name is not valid.");
+                filenameToolTip.SetToolTip(filenameBox, "The file name is invalid.");
                 return;
             }
 
@@ -159,10 +163,15 @@ namespace cvhdx {
             command.Add("--capacity");
             command.Add(Capacity.ToString());
 
-            var result = Program.RunProcess(Program.Location, command);
-            if (result != 0) {
-                MessageBox.Show(result.ToString(), Program.Title, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            try {
+                var result = Program.RunProcess(Program.Location, command);
+                if (result != 0) {
+                    Program.Msgbox("Unable to create VHDX.", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                }
+            } catch (Exception ex) {
+                Program.Msgbox(ex.Message, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
+
             Close();
         }
     }
