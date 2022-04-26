@@ -11,7 +11,6 @@ using System.Runtime.InteropServices;
 using System.Reflection;
 using Microsoft.Win32;
 using System.Text.RegularExpressions;
-using System.Threading;
 
 namespace cvhdx {
     internal static class Program {
@@ -25,6 +24,8 @@ namespace cvhdx {
         public static Boolean IsElevated { get; } = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
 
         public static Boolean Attached { get; set; } = false;
+
+        public static MainForm MainForm { get; set; } = null;
 
         public static Dictionary<String, Int32> UnitMapping { get; } = new() {
             { "MB", 1 },
@@ -247,17 +248,16 @@ namespace cvhdx {
                     return;
                 }
 
-                MainForm form = null;
                 if (!fileExists) {
-                    form = new MainForm(CommandType.Create);
-                    form.Capacity = 102400;
+                    MainForm = new MainForm(CommandType.Create);
+                    MainForm.Capacity = 102400;
                 } else {
-                    form = new MainForm(CommandType.Expand);
-                    form.Capacity = form.OriginalCapacity = form.MinimumCapacity = GetVhdxCapacity(filename);
+                    MainForm = new MainForm(CommandType.Expand);
+                    MainForm.Capacity = MainForm.OriginalCapacity = MainForm.MinimumCapacity = GetVhdxCapacity(filename);
                 }
-                form.Filename = filename;
+                MainForm.Filename = filename;
 
-                Application.Run(form);
+                Application.Run(MainForm);
             } catch (Exception ex) {
                 Msgbox(ex.Message, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 throw;
@@ -383,7 +383,11 @@ namespace cvhdx {
         }
 
         public static DialogResult Msgbox(String text, MessageBoxButtons button, MessageBoxIcon icon) {
-            return MessageBox.Show(text, Title, button, icon);
+            if (MainForm is null) {
+                return MessageBox.Show(text, Title, button, icon, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
+            } else {
+                return MessageBox.Show(MainForm, text, Title, button, icon, MessageBoxDefaultButton.Button1);
+            }
         }
     }
 
